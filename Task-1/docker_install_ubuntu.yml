@@ -6,7 +6,7 @@
    vars: 
    - ansible_sudo_pass: alex
    - tmp_folder: /tmp/Docker # directory on remote host for store docker-compose.yml
-   - tmp_folder_local: /TEST/ansible # directory on local host with docker-compose.yml
+   - tmp_folder_local: /TEST/ansible/NGINX_LB_ADMINER # directory on local host with docker-compose.yml
  
    tasks:
     - name: Update cache and install packages
@@ -24,12 +24,14 @@
     - name: Add Docker GPG key
       shell: "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - "
 
-#Получить релиз ubuntu для того чтобы скачать репозиторий 
+#Получить релиз ubuntu для того чтобы скачать репозиторий
+
     - name: Get lsb_release
       shell: lsb_release -cs
       register: lsb_release
 
-#добавляем docker репозитарий в список репозитарием ubuntu 
+#добавляем docker репозитарий в список репозитарием ubuntu
+
     - name: Add docker repo
       ansible.builtin.apt_repository: 
          repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ lsb_release.stdout }} stable"
@@ -66,29 +68,9 @@
           name: docker
           state: started
 
-#Создать папку на удаленном компьютере для копирования docker-compose.yml
-    - name: Create tmp folder for docker-compose.yml
-      file: 
-        path: "{{tmp_folder}}"
-        state: directory
-        mode: 0755
-
-#Копируем docker-compose.yml на удаленный компьютер
-    - name: Copy docker-compose.yml to remote
-      ansible.builtin.copy:
-        src: "{{ tmp_folder_local }}\/docker-compose.yml"
-        dest: "{{ tmp_folder }}"
-        mode: '0644'
-
 #Устанавливаем модули python через Pip
     - name: Pip install docker docker-compose
       pip:
        name: 
         - docker
         - docker-compose
-
-#Запускаем файл docker-compose.yml с сервисом adminer на разных портах
-    - name: Start services
-      community.general.docker_compose:
-        project_src: "{{ tmp_folder }}"
-        state: present
